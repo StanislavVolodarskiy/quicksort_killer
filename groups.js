@@ -2,20 +2,22 @@
 
 var _ = require('lodash');
 
-var make_group = function(pivot) {
+var make_group = function(pivot, start) {
     return {
         pivot: pivot,
+        start: start,
         members: []
     };
 };
 
 var order = function(a, b) {
-    if (a < b) { return -1; }
-    if (a > b) { return  1; }
-                 return  0;
+    if (a < b) return -1;
+    if (a > b) return  1;
+               return  0;
 };
 
 var make_cmp = function() {
+    var index = 0;
     var groups = [];
     var pair = [];
 
@@ -27,7 +29,7 @@ var make_cmp = function() {
             }
         });
         if (group === undefined) {
-            group = make_group(x);
+            group = make_group(x, index);
             groups.push(group);
         }
         return group;
@@ -43,6 +45,7 @@ var make_cmp = function() {
                 pair[0].members.push(b);
                 pair[1].members.push(a);
             }
+            ++index;
             return order(a, b);
         },
         groups: groups
@@ -65,10 +68,14 @@ if (true) {
         return -order(a.members.length, b.members.length);
     });
 }
-console.log('sorted groups:');
+console.log('groups:');
 _.each(cmp.groups, function(group) {
     if (group.members.length > 1) {
-        group.members.sort(order);
-        console.log(group.pivot, group.members.length, group.members.join(' '));
+        console.log(
+            group.pivot,
+            group.start,
+            group.start + group.members.length,
+            group.members.join(' ')
+        );
     }
 });
