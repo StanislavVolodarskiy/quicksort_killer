@@ -10,15 +10,9 @@ var make_group = function(pivot, start) {
     };
 };
 
-var order = function(a, b) {
-    if (a < b) return -1;
-    if (a > b) return  1;
-               return  0;
-};
-
-var make_cmp = function() {
-    var index = 0;
+var make_groups = function() {
     var groups = [];
+    var index = 0;
     var pair = [];
 
     var find_group = function(x) {
@@ -36,8 +30,9 @@ var make_cmp = function() {
     };
 
     return {
-        cmp: function(a, b) {
+        push: function(a, b) {
             if (a !== b) {
+                calls.push([a, b]);
                 pair = [
                     find_group(a),
                     find_group(b)
@@ -46,9 +41,25 @@ var make_cmp = function() {
                 pair[1].members.push(a);
             }
             ++index;
-            return order(a, b);
         },
         groups: groups
+    };
+};
+var order = function(a, b) {
+    if (a < b) return -1;
+    if (a > b) return  1;
+               return  0;
+};
+
+var make_cmp = function(groups) {
+    var calls = [];
+
+    return {
+        cmp: function(a, b) {
+            groups.push(a, b);
+            return order(a, b);
+        },
+        calls: calls
     };
 };
 
