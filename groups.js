@@ -32,7 +32,6 @@ var make_groups = function() {
     return {
         push: function(a, b) {
             if (a !== b) {
-                calls.push([a, b]);
                 pair = [
                     find_group(a),
                     find_group(b)
@@ -45,6 +44,7 @@ var make_groups = function() {
         groups: groups
     };
 };
+
 var order = function(a, b) {
     if (a < b) return -1;
     if (a > b) return  1;
@@ -56,6 +56,7 @@ var make_cmp = function(groups) {
 
     return {
         cmp: function(a, b) {
+            calls.push([a, b]);
             groups.push(a, b);
             return order(a, b);
         },
@@ -63,7 +64,8 @@ var make_cmp = function(groups) {
     };
 };
 
-var cmp = make_cmp();
+var groups = make_groups();
+var cmp = make_cmp(groups);
 
 var list = [];
 for (var i = 0; i < 31; ++i) {
@@ -75,12 +77,12 @@ console.log('sorted list:');
 console.log(list.join(' '));
 console.log();
 if (true) {
-    cmp.groups.sort(function(a, b) {
+    groups.groups.sort(function(a, b) {
         return -order(a.members.length, b.members.length);
     });
 }
 console.log('groups:');
-_.each(cmp.groups, function(group) {
+_.each(groups.groups, function(group) {
     if (group.members.length > 1) {
         console.log(
             group.pivot,
