@@ -10,8 +10,7 @@ var make_group = function(pivot, start) {
     };
 };
 
-var make_groups = function() {
-    var groups = [];
+var make_group_updater = function(groups) {
     var index = 0;
     var pair = [];
 
@@ -29,19 +28,14 @@ var make_groups = function() {
         return group;
     };
 
-    return {
-        push: function(a, b) {
-            if (a !== b) {
-                pair = [
-                    find_group(a),
-                    find_group(b)
-                ];
-                pair[0].members.push(b);
-                pair[1].members.push(a);
-            }
-            ++index;
-        },
-        groups: groups
+    return function(a, b) {
+        pair = [
+            find_group(a),
+            find_group(b)
+        ];
+        pair[0].members.push(b);
+        pair[1].members.push(a);
+        ++index;
     };
 };
 
@@ -51,44 +45,41 @@ var order = function(a, b) {
                return  0;
 };
 
-var make_cmp = function(groups) {
-    var calls = [];
-
-    return {
-        cmp: function(a, b) {
-            calls.push([a, b]);
-            groups.push(a, b);
-            return order(a, b);
-        },
-        calls: calls
+var make_cmp = function(order, cb) {
+    return function(a, b) {
+        var o = order(a, b);
+        if (o !== 0) {
+            cb(a, b);
+        }
+        return o;
     };
 };
 
-var groups = make_groups();
-var cmp = make_cmp(groups);
+var groups = [];
+var calls = [];
+
+var cmp = (function() {
+    var update_groups = make_group_updater(groups);
+    return make_cmp(order, function(a, b) {
+        calls.push([a, b]);
+        update_groups(a, b);
+    });
+})();
 
 var list = [];
 for (var i = 0; i < 31; ++i) {
     list.push(i);
 }
+list = list.sort(cmp);
 
-list = list.sort(cmp.cmp);
-console.log('sorted list:');
-console.log(list.join(' '));
-console.log();
-if (true) {
-    groups.groups.sort(function(a, b) {
-        return -order(a.members.length, b.members.length);
-    });
-}
-console.log('groups:');
-_.each(groups.groups, function(group) {
-    if (group.members.length > 1) {
-        console.log(
-            group.pivot,
-            group.start,
-            group.start + group.members.length,
-            group.members.join(' ')
-        );
-    }
+var group = _.maxBy(groups.groups, function(group) {
+    return group.members.length;
 });
+
+console.log('longest group:');
+console.log(
+    group.pivot,
+    group.start,
+    group.start + group.members.length,
+    group.members.join(' ')
+);
