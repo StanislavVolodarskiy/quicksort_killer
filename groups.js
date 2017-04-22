@@ -67,7 +67,7 @@ var find_longest_group = function(list, from_index) {
         });
     })();
 
-    var sorted_list = list.sort(cmp);
+    var sorted_list = list.slice(0).sort(cmp);
 
     var longest_group = _.maxBy(
         _.filter(
@@ -88,12 +88,89 @@ var find_longest_group = function(list, from_index) {
     };
 };
 
-var list = [];
-for (var i = 0; i < 31; ++i) {
-    list.push(i);
-}
+var range = function(n) {
+    var list = [];
+    for (var i = 0; i < n; ++i) {
+        list.push(i);
+    }
+    return list;
+};
 
-var longest_group = find_longest_group(list, 0);
+var make_default_dict = function(f) {
+    var data = {};
+    return function(key) {
+        if (!data.hasOwnProperty(key)) {
+            data[key] = f();
+        }
+        return data[key];
+    };
+};
+
+var make_set = function() {
+    var data = {};
+    return {
+        add: function(v) {
+            data[v] = undefined;
+        },
+        has: function(v) {
+            return data.hasOwnProperty(v);
+        },
+        each: function(f) {
+            _.forOwn(data, function(_, key) {
+                f(key);
+            });
+        }
+    };
+};
+
+var make_set_dict = function() {
+    return make_default_dict(function() {
+        return make_set();
+    });
+};
+
+var make_comparator = function(i, calls) {
+    var below = make_set_dict();
+    var above = make_set_dict();
+
+    var store = function(a, b) {
+        below(b).add(a);
+        above(a).add(b);
+    };
+
+    _.each(calls, function(call) {
+        var a = call[0];
+        var b = call[1];
+        if (a < b) {
+            store(a, b);
+        } else if (a > b) {
+            store(b, a);
+        }
+    });
+
+    var gather = function(i, set_dict) {
+        var set = make_set();
+        var gather = function(i) {
+            if (!set.has(i)) {
+                set.add(i);
+                set_dict(i).each(gather);
+            }
+        };
+        gather(i);
+        return set;
+    };
+
+    var le = gather(i, below);
+    var ge = gather(i, above);
+
+    return {
+        le: function(j) { return le.has(j); },
+        ge: function(j) { return ge.has(j); }
+    };
+};
+
+n = 31;
+var longest_group = find_longest_group(range(n), 0);
 
 console.log('longest group:');
 console.log(
@@ -102,3 +179,15 @@ console.log(
     longest_group.group.start + longest_group.group.members.length,
     longest_group.group.members.join(' ')
 );
+
+var calls_before = longest_group.calls.slice(0, longest_group.group.start);
+console.log(calls_before);
+var comparator = make_comparator(longest_group.group.pivot, calls_before);
+_.each(range(n), function(i) {
+    if (comparator.le(i)) {
+        console.log(i, '<=');
+    }
+    if (comparator.ge(i)) {
+        console.log(i, '=>');
+    }
+});
