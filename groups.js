@@ -55,31 +55,50 @@ var make_cmp = function(order, cb) {
     };
 };
 
-var groups = [];
-var calls = [];
+var find_longest_group = function(list, from_index) {
+    var groups = [];
+    var calls = [];
 
-var cmp = (function() {
-    var update_groups = make_group_updater(groups);
-    return make_cmp(order, function(a, b) {
-        calls.push([a, b]);
-        update_groups(a, b);
-    });
-})();
+    var cmp = (function() {
+        var update_groups = make_group_updater(groups);
+        return make_cmp(order, function(a, b) {
+            calls.push([a, b]);
+            update_groups(a, b);
+        });
+    })();
+
+    var sorted_list = list.sort(cmp);
+
+    var longest_group = _.maxBy(
+        _.filter(
+            groups,
+            function(group) {
+                return group.start >= from_index;
+            }
+        ),
+        function(group) {
+            return group.members.length;
+        }
+    );
+
+    return {
+        group: longest_group,
+        sorted_list: sorted_list,
+        calls: calls
+    };
+};
 
 var list = [];
 for (var i = 0; i < 31; ++i) {
     list.push(i);
 }
-list = list.sort(cmp);
 
-var group = _.maxBy(groups.groups, function(group) {
-    return group.members.length;
-});
+var longest_group = find_longest_group(list, 0);
 
 console.log('longest group:');
 console.log(
-    group.pivot,
-    group.start,
-    group.start + group.members.length,
-    group.members.join(' ')
+    longest_group.group.pivot,
+    longest_group.group.start,
+    longest_group.group.start + longest_group.group.members.length,
+    longest_group.group.members.join(' ')
 );
