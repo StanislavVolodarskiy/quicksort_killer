@@ -115,7 +115,7 @@ var make_set = function() {
 var lt = function(a, b) { return a < b; };
 var gt = function(a, b) { return a > b; };
 
-var make_comparator = function(pred, i, calls) {
+var make_v_pred = function(pred, v, calls) {
     var list_dict = make_default_dict(function() {
         return [];
     });
@@ -128,16 +128,16 @@ var make_comparator = function(pred, i, calls) {
     });
 
     var set = make_set();
-    var gather = function(i) {
-        if (!set.has(i)) {
-            set.add(i);
-            _.each(list_dict(i), gather);
+    var gather = function(v) {
+        if (!set.has(v)) {
+            set.add(v);
+            _.each(list_dict(v), gather);
         }
     };
-    gather(i);
+    gather(v);
 
-    return function(j) {
-        return set.has(j);
+    return function(v) {
+        return set.has(v);
     };
 };
 
@@ -178,6 +178,15 @@ var shift_list = function(list, shift, pred) {
     }));
 };
 
+var worse_list = function(list, pivot, calls, pred) {
+    var pivot_pred = make_v_pred(pred, pivot, calls);
+    var shift = _.max(list) - _.min(list) + 1;
+    if (pred(1, 0)) {
+        shift = -shift;
+    }
+    return shift_list(list, shift, not_pred(pivot_pred));
+};
+
 var log_group = function(group) {
     console.log(
         group.pivot,
@@ -189,32 +198,23 @@ var log_group = function(group) {
 
 n = 31;
 var list0 = range(n);
-var longest_group = find_longest_group(list0, 3);
+var longest_group = find_longest_group(list0, 0);
 
 console.log('longest group:');
 log_group(longest_group.group);
 
 var calls_before = longest_group.calls.slice(0, longest_group.group.start);
 console.log(calls_before);
-var le = make_comparator(lt, longest_group.group.pivot, calls_before);
-var ge = make_comparator(gt, longest_group.group.pivot, calls_before);
-_.each(range(n), function(i) {
-    if (le(i)) {
-        console.log(i, '<=');
-    }
-    if (ge(i)) {
-        console.log(i, '=>');
-    }
-});
 
-var list1 = shift_list(list0, n, not_pred(le));
-var longest_group = find_longest_group(list1, 0);
+var list_lt = worse_list(list0, longest_group.group.pivot, calls_before, lt);
+var list_gt = worse_list(list0, longest_group.group.pivot, calls_before, gt);
 
-console.log('longest group:');
-log_group(longest_group.group);
-console.log(list0.join(' '));
-console.log(list1.join(' '));
+console.log(list0  .join(' '));
+console.log(list_lt.join(' '));
+console.log(list_gt.join(' '));
 
-var longest_group = find_longest_group(list1, 31);
-console.log('longest group:');
-log_group(longest_group.group);
+console.log('longest group for lt:');
+log_group(find_longest_group(list_lt, 0).group);
+
+console.log('longest group for gt:');
+log_group(find_longest_group(list_gt, 0).group);
