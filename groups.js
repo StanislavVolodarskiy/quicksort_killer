@@ -57,19 +57,39 @@ var make_cmp = function(order, cb) {
     };
 };
 
-var find_longest_group = function(list, from_index) {
-    var groups = [];
+var run_sort = function(list) {
     var calls = [];
 
     var cmp = (function() {
-        var update_groups = make_group_updater(from_index, groups);
         return make_cmp(order, function(a, b) {
             calls.push([a, b]);
-            update_groups(a, b);
         });
     })();
 
     var sorted_list = list.slice(0).sort(cmp);
+
+    return {
+        calls: calls,
+        sorted_list: sorted_list
+    };
+};
+
+var gather_groups = function(calls, from_index) {
+    var groups = [];
+    var update_groups = make_group_updater(from_index, groups);
+    _.each(calls, function(call) {
+        update_groups(call[0], call[1]);
+    });
+    return groups;
+};
+
+var find_longest_group = function(list, from_index, group_pred) {
+    var sorted = run_sort(list);
+    var groups = gather_groups(sorted.calls, from_index);
+
+    if (group_pred !== undefined) {
+        groups = _.filter(groups, group_pred);
+    }
 
     var longest_group = _.maxBy(groups, function(group) {
         return group.members.length;
@@ -77,9 +97,15 @@ var find_longest_group = function(list, from_index) {
 
     return {
         group: longest_group,
-        sorted_list: sorted_list,
-        calls: calls
+        calls: sorted.calls,
+        sorted_list: sorted.sorted_list
     };
+};
+
+var find_longest_start_group = function(list, from_index) {
+    return find_longest_group(list, from_index, function(group) {
+        return group.start === from_index;
+    });
 };
 
 var range = function(n) {
@@ -196,25 +222,45 @@ var log_group = function(group) {
     );
 };
 
-n = 31;
+var accurate_worse_list = function(list, group, pred) {
+    var finish = group.group.start + group.group.members.length;
+    for (var start = group.group.start; start < finish; ++start) {
+        var calls_before = group.calls.slice(0, start);
+        var wlist = worse_list(list, group.group.pivot, calls_before, pred);
+        var wgroup = find_longest_start_group(wlist, start);
+        if (start + wgroup.group.members.length >= finish) {
+            return wlist;
+        }
+    }
+};
+
+n = 400;
 var list0 = range(n);
-var longest_group = find_longest_group(list0, 0);
 
-console.log('longest group:');
-log_group(longest_group.group);
+var start = 0;
+var list = list0;
+while(true) {
+    var longest_group = find_longest_group(list, start);
 
-var calls_before = longest_group.calls.slice(0, longest_group.group.start);
-console.log(calls_before);
+    console.log('calls', longest_group.calls.length, longest_group.group.members.length);
+    if (longest_group.group.members.length <= 2) {
+        break;
+    }
 
-var list_lt = worse_list(list0, longest_group.group.pivot, calls_before, lt);
-var list_gt = worse_list(list0, longest_group.group.pivot, calls_before, gt);
+    var finish = longest_group.group.start + longest_group.group.members.length;
 
-console.log(list0  .join(' '));
-console.log(list_lt.join(' '));
-console.log(list_gt.join(' '));
+    var list_lt = accurate_worse_list(list, longest_group, lt);
+    var list_gt = accurate_worse_list(list, longest_group, gt);
 
-console.log('longest group for lt:');
-log_group(find_longest_group(list_lt, 0).group);
+    ltg = find_longest_group(list_lt, finish);
+    gtg = find_longest_group(list_gt, finish);
+    if (ltg.group.members.length <= gtg.group.members.length) {
+        list = list_lt;
+    } else {
+        list = list_gt;
+    }
 
-console.log('longest group for gt:');
-log_group(find_longest_group(list_gt, 0).group);
+    list = list_lt;
+    start = finish;
+}
+console.log(list.join(' '));
