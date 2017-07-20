@@ -234,7 +234,7 @@ var accurate_worse_list = function(list, group, pred) {
     }
 };
 
-n = 400;
+n = 500;
 var list0 = range(n);
 
 var start = 0;
@@ -247,20 +247,7 @@ while(true) {
         break;
     }
 
-    var finish = longest_group.group.start + longest_group.group.members.length;
-
-    var list_lt = accurate_worse_list(list, longest_group, lt);
-    var list_gt = accurate_worse_list(list, longest_group, gt);
-
-    ltg = find_longest_group(list_lt, finish);
-    gtg = find_longest_group(list_gt, finish);
-    if (ltg.group.members.length <= gtg.group.members.length) {
-        list = list_lt;
-    } else {
-        list = list_gt;
-    }
-
-    list = list_lt;
-    start = finish;
+    list = accurate_worse_list(list, longest_group, lt);
+    start = longest_group.group.start + longest_group.group.members.length;
 }
 console.log(list.join(' '));
